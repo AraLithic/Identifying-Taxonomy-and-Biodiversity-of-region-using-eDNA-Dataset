@@ -6,7 +6,7 @@ TerraTrace is a local web application for analyzing processed **eDNA / metabarco
 
 The application runs entirely locally with a lightweight **FastAPI backend** and a static **HTML/JavaScript frontend**.
 
-> **No AI · No database · No external analysis APIs used in this**
+> **No AI · No database · No external analysis APIs used in this application**
 
 ---
 
