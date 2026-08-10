@@ -3,7 +3,7 @@ TerraTrace backend by Umair
 Deterministic analysis of processed eDNA / metabarcoding CSV datasets.
 
 No AI. No external API calls. No database. Everything is computed in
-memory, directly from the uploaded CSV, using pandas / numpy / scipy.
+memory, directly from the uploaded CSV, using pandas / numpy / scipy libraries.
 """
 
 import io
