@@ -1,1 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTrace — eDNA &amp; Biodiversity Ledger, Odisha</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+  // Same-origin CDN fallback: if cdnjs is unreachable, fall back to jsDelivr.
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
+<style>
 
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --paper:      #EDE7D9;
+  --paper-dim:  #E4DCC9;
+  --card:       #FBF8F1;
+  --ink:        #23271F;
+  --ink-soft:   #565A4C;
+  --brackish:       #2F5D62;
+  --brackish-deep:  #1B3A3D;
+  --brackish-pale:  #CFE0DD;
+  --silt:       #A97A2E;
+  --silt-pale:  #E9D9B4;
+  --rust:       #A23E2B;
+  --rust-pale:  #EFD6CC;
+  --line:       #C9BE9F;
+  --line-soft:  #DAD2B8;
+
+  --serif:  'Spectral', Georgia, serif;
+  --sans:   'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --mono:   'JetBrains Mono', 'Courier New', monospace;
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.5;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(35,39,31,0.05) 1px, transparent 0);
+  background-size:22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+}
+
+a{ color:var(--brackish-deep); }
+
+::selection{ background:var(--silt-pale); }
+
+button{ font-family:inherit; }
+
+/* focus ring, kept visible everywhere */
+:focus-visible{ outline:2px solid var(--brackish); outline-offset:2px; }
+
+/* ---------------------------------------------------------------- header */
+
+header.masthead{
+  background:var(--brackish-deep);
+  color:var(--paper);
+  padding:26px 34px 20px;
+  border-bottom:4px solid var(--silt);
+}
+
+.masthead-row{
+  max-width:1240px;
+  margin:0 auto;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  flex-wrap:wrap;
+}
+
+.brand{ display:flex; align-items:baseline; gap:12px; }
+
+.brand-mark{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:28px;
+  letter-spacing:0.01em;
+}
+.brand-mark em{
+  font-style:italic;
+  font-weight:500;
+  color:#BFD8D3;
+}
+
+.brand-sub{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:#B9CFC9;
+  max-width:520px;
+}
+
+.masthead-meta{
+  font-family:var(--mono);
+  font-size:11px;
+  text-align:right;
+  color:#B9CFC9;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-end;
+}
+
+.status-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 9px;
+  border:1px solid #3E6A65;
+  background:rgba(0,0,0,0.15);
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  font-size:10px;
+}
+.status-dot{
+  width:7px; height:7px; border-radius:50%;
+  background:#8a8a72;
+  flex:none;
+}
+.status-pill.ok .status-dot{ background:#7FBF8E; box-shadow:0 0 0 3px rgba(127,191,142,0.18); }
+.status-pill.bad .status-dot{ background:#C96A55; box-shadow:0 0 0 3px rgba(201,106,85,0.18); }
+.status-pill.pending .status-dot{ background:#D9C067; box-shadow:0 0 0 3px rgba(217,192,103,0.18); }
+
+/* sequencing tape — signature strip */
+.tape{
+  overflow:hidden;
+  white-space:nowrap;
+  background:var(--brackish);
+  border-bottom:1px solid var(--brackish-deep);
+  height:24px;
+  display:flex;
+  align-items:center;
+}
+.tape-inner{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:0.35em;
+  color:rgba(237,231,217,0.55);
+  padding-left:100%;
+  animation:tape-scroll 70s linear infinite;
+}
+@keyframes tape-scroll{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-50%); }
+}
+.tape-inner b{ color:var(--silt-pale); font-weight:500; }
+
+/* ---------------------------------------------------------------- layout */
+
+.wrap{
+  max-width:1240px;
+  margin:0 auto;
+  padding:28px 34px 90px;
+}
+
+.intro-line{
+  font-family:var(--serif);
+  font-style:italic;
+  color:var(--ink-soft);
+  font-size:15.5px;
+  max-width:760px;
+  margin:0 0 26px;
+}
+
+/* ---------------------------------------------------------------- intake */
+
+.intake{
+  display:grid;
+  grid-template-columns:1.3fr 1fr;
+  gap:18px;
+  margin-bottom:28px;
+}
+@media (max-width:820px){ .intake{ grid-template-columns:1fr; } }
+
+.dropzone{
+  background:var(--card);
+  border:1.5px dashed var(--line);
+  padding:26px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:flex-start;
+  position:relative;
+  transition:border-color .15s ease, background .15s ease;
+}
+.dropzone.drag{ border-color:var(--brackish); background:var(--brackish-pale); }
+
+.dropzone .eyebrow{ margin-bottom:2px; }
+
+.dropzone h2{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:19px;
+  margin:0;
+}
+.dropzone p{
+  margin:0;
+  color:var(--ink-soft);
+  font-size:13px;
+  max-width:46ch;
+}
+
+.file-name{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--brackish-deep);
+  word-break:break-all;
+}
+
+.btn{
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:13px;
+  letter-spacing:0.02em;
+  padding:10px 16px;
+  border:1.5px solid var(--ink);
+  background:var(--ink);
+  color:var(--paper);
+  cursor:pointer;
+  transition:transform .08s ease, background .12s ease;
+}
+.btn:hover{ background:var(--brackish-deep); border-color:var(--brackish-deep); }
+.btn:active{ transform:translateY(1px); }
+.btn.ghost{
+  background:transparent;
+  color:var(--ink);
+  border-color:var(--ink);
+}
+.btn.ghost:hover{ background:var(--ink); color:var(--paper); }
+.btn.small{ padding:6px 11px; font-size:11.5px; }
+.btn:disabled{ opacity:0.45; cursor:not-allowed; }
+.btn[disabled]:hover{ background:var(--ink); }
+
+.btn-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+
+.demo-card{
+  background:var(--brackish-deep);
+  color:var(--paper);
+  padding:26px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  justify-content:center;
+}
+.demo-card h2{ font-family:var(--serif); font-size:19px; margin:0; font-weight:600; }
+.demo-card p{ margin:0; font-size:13px; color:#C9D9D3; max-width:38ch; }
+.demo-card .btn{
+  background:var(--silt);
+  border-color:var(--silt);
+  color:var(--brackish-deep);
+}
+.demo-card .btn:hover{ background:#c08d3f; border-color:#c08d3f; }
+
+.intake-error{
+  margin-top:6px;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--rust);
+  border-left:3px solid var(--rust);
+  padding:6px 10px;
+  background:var(--rust-pale);
+  display:none;
+}
+.intake-error.show{ display:block; }
+
+/* ---------------------------------------------------------------- warnings */
+
+.warn-strip{
+  display:none;
+  background:var(--rust-pale);
+  border:1px solid #D9B6A9;
+  border-left:4px solid var(--rust);
+  padding:12px 16px;
+  margin-bottom:22px;
+  font-size:13px;
+}
+.warn-strip.show{ display:block; }
+.warn-strip .eyebrow{ color:var(--rust); }
+.warn-strip ul{ margin:6px 0 0; padding-left:18px; }
+.warn-strip li{ margin-bottom:3px; }
+
+/* ---------------------------------------------------------------- tabs */
+
+.tabs{
+  display:flex;
+  gap:3px;
+  overflow-x:auto;
+  padding:0 2px;
+  scrollbar-width:thin;
+}
+.tab-btn{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  background:var(--paper-dim);
+  border:1px solid var(--line);
+  border-bottom:none;
+  color:var(--ink-soft);
+  padding:9px 14px 8px;
+  cursor:pointer;
+  white-space:nowrap;
+  flex:none;
+  position:relative;
+  top:1px;
+}
+.tab-btn:hover{ color:var(--ink); background:#DCD3B8; }
+.tab-btn.active{
+  background:var(--card);
+  color:var(--brackish-deep);
+  border-color:var(--line);
+  font-weight:700;
+}
+.tab-btn .n{ color:var(--silt); margin-right:6px; }
+
+.folder{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:26px 28px 30px;
+  min-height:280px;
+}
+
+.section{ display:none; }
+.section.active{ display:block; }
+
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:16px;
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--line-soft);
+  padding-bottom:12px;
+  margin-bottom:20px;
+}
+.section-head h2{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:22px;
+  margin:0;
+}
+.section-head .sub{
+  font-family:var(--mono);
+  font-size:11.5px;
+  color:var(--ink-soft);
+}
+
+.eyebrow{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--silt);
+}
+
+.empty-state{
+  padding:40px 10px;
+  text-align:center;
+  color:var(--ink-soft);
+}
+.empty-state .glyph{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:28px;
+  color:var(--line);
+  margin-bottom:8px;
+}
+.empty-state p{ margin:4px auto; max-width:44ch; font-size:13.5px; }
+
+.unavailable{
+  padding:22px;
+  background:var(--paper-dim);
+  border:1px dashed var(--line);
+  color:var(--ink-soft);
+  font-size:13px;
+}
+.unavailable b{ color:var(--ink); }
+
+/* ---------------------------------------------------------------- stat cards */
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(150px,1fr));
+  gap:1px;
+  background:var(--line-soft);
+  border:1px solid var(--line-soft);
+  margin-bottom:22px;
+}
+.stat{
+  background:var(--card);
+  padding:16px 16px 14px;
+}
+.stat .label{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.stat .value{
+  font-family:var(--serif);
+  font-size:26px;
+  font-weight:600;
+  color:var(--brackish-deep);
+}
+.stat .value small{ font-family:var(--sans); font-size:12px; font-weight:500; color:var(--ink-soft); }
+.stat .note{ font-size:11px; color:var(--ink-soft); margin-top:4px; }
+
+/* ---------------------------------------------------------------- tables */
+
+.table-wrap{ overflow-x:auto; border:1px solid var(--line-soft); }
+table.ledger{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  background:var(--card);
+}
+table.ledger caption{ text-align:left; }
+table.ledger th{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  text-align:left;
+  color:var(--paper);
+  background:var(--brackish-deep);
+  padding:9px 12px;
+  position:sticky; top:0;
+}
+table.ledger td{
+  padding:8px 12px;
+  border-bottom:1px solid var(--line-soft);
+  vertical-align:middle;
+}
+table.ledger tr:nth-child(even) td{ background:var(--paper-dim); }
+table.ledger tr:hover td{ background:var(--brackish-pale); }
+table.ledger td.num{ font-family:var(--mono); text-align:right; }
+table.ledger .sci{ font-family:var(--serif); font-style:italic; color:var(--brackish-deep); }
+table.ledger .muted{ color:var(--ink-soft); font-size:12px; }
+
+.barcode{ display:inline-flex; align-items:stretch; height:15px; width:52px; vertical-align:middle; margin-right:8px; flex:none; }
+
+.rank-chip{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:10px;
+  padding:1px 6px;
+  border:1px solid var(--line);
+  color:var(--ink-soft);
+  margin:1px 3px 1px 0;
+}
+
+/* ---------------------------------------------------------------- mapping */
+
+.mapping{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px dashed var(--line);
+}
+.mapping-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;
+  margin:14px 0 16px;
+}
+.field label{
+  display:block;
+  font-family:var(--mono);
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:var(--ink-soft);
+  margin-bottom:5px;
+}
+.field select{
+  width:100%;
+  font-family:var(--mono);
+  font-size:12.5px;
+  padding:8px 9px;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--ink);
+}
+.mapping-toggle{
+  background:none; border:none; cursor:pointer;
+  font-family:var(--mono); font-size:11px; letter-spacing:0.05em;
+  color:var(--brackish-deep); text-decoration:underline; padding:0;
+}
+
+/* ---------------------------------------------------------------- charts */
+
+.chart-box{
+  border:1px solid var(--line-soft);
+  background:var(--card);
+  padding:16px 18px 8px;
+  margin-bottom:22px;
+}
+.chart-box .cap{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+}
+.chart-canvas-wrap{ position:relative; height:260px; }
+
+.two-col{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+@media (max-width:760px){ .two-col{ grid-template-columns:1fr; } }
+
+/* ---------------------------------------------------------------- matrices */
+
+.matrix-tabs{ display:flex; gap:6px; margin-bottom:14px; }
+.mtab{
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.04em;
+  padding:6px 12px; border:1px solid var(--line); background:var(--paper);
+  cursor:pointer; color:var(--ink-soft);
+}
+.mtab.active{ background:var(--brackish-deep); color:var(--paper); border-color:var(--brackish-deep); }
+
+table.matrix{ border-collapse:collapse; font-family:var(--mono); font-size:11.5px; }
+table.matrix th{
+  padding:6px 9px; font-weight:500; color:var(--ink-soft);
+  border-bottom:1px solid var(--line);
+}
+table.matrix th:first-child{ text-align:left; }
+table.matrix td{
+  padding:6px 9px; text-align:center; border:1px solid var(--paper);
+  color:var(--brackish-deep);
+}
+table.matrix td.diag{ background:var(--ink); color:var(--paper); }
+table.matrix th.rowhead{ text-align:left; color:var(--ink); padding-right:14px; white-space:nowrap; }
+
+/* ---------------------------------------------------------------- legend / footer */
+
+.legend-row{ display:flex; gap:16px; flex-wrap:wrap; margin:10px 0 20px; font-size:11.5px; color:var(--ink-soft); font-family:var(--mono); }
+.legend-row span.sw{ display:inline-block; width:10px; height:10px; margin-right:5px; vertical-align:-1px; }
+
+footer.site-foot{
+  max-width:1240px;
+  margin:0 auto;
+  padding:20px 34px 50px;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--ink-soft);
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+/* ---------------------------------------------------------------- misc */
+
+.loading-row{
+  display:flex; align-items:center; gap:10px;
+  font-family:var(--mono); font-size:12px; color:var(--brackish-deep);
+  padding:14px 0;
+}
+.spinner{
+  width:13px; height:13px; border:2px solid var(--line);
+  border-top-color:var(--brackish); border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.pts-list{ max-height:230px; overflow-y:auto; border:1px solid var(--line-soft); }
+
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-row">
+    <div>
+      <div class="brand">
+        <span class="brand-mark">TerraTrace<em>.</em></span>
+      </div>
+      <div class="brand-sub">Identifying Taxonomy &amp; Assessing Biodiversity from eDNA Datasets — State of Odisha</div>
+    </div>
+    <div class="masthead-meta">
+      <span class="status-pill pending" id="statusPill"><span class="status-dot"></span><span id="statusText">checking backend…</span></span>
+      <span>No AI · No database · local FastAPI backend</span>
+    </div>
+  </div>
+</header>
+
+<div class="tape" aria-hidden="true">
+  <div class="tape-inner" id="tapeInner"></div>
+</div>
+
+<div class="wrap">
+
+  <p class="intro-line">A deterministic reading room for processed eDNA / metabarcoding survey data — taxonomy, diversity indices, site comparisons, sequence quality, and spatial &amp; temporal spread, computed directly from whatever CSV you hand it.</p>
+
+  <!-- ============================================================= INTAKE -->
+  <div class="intake">
+    <div class="dropzone" id="dropzone">
+      <span class="eyebrow">01 · Accession</span>
+      <h2>Upload a dataset</h2>
+      <p>Drop a processed eDNA / metabarcoding CSV here, or choose a file. Max 25&nbsp;MB. Columns are detected automatically; you can remap them by hand afterward.</p>
+      <input type="file" id="fileInput" accept=".csv" style="display:none">
+      <div class="btn-row">
+        <button class="btn" id="chooseBtn">Choose CSV file</button>
+        <span class="file-name" id="fileNameLabel"></span>
+      </div>
+      <div class="intake-error" id="intakeError"></div>
+    </div>
+    <div class="demo-card">
+      <span class="eyebrow" style="color:#BFD8D3;">Or</span>
+      <h2>Run the reference dataset</h2>
+      <p>A synthetic four-site Odisha wetland survey, built in for testing the pipeline without a file of your own.</p>
+      <div class="btn-row"><button class="btn" id="demoBtn">Run demo dataset</button></div>
+    </div>
+  </div>
+
+  <div class="loading-row" id="loadingRow" style="display:none;">
+    <span class="spinner"></span> <span id="loadingText">Analyzing dataset…</span>
+  </div>
+
+  <div class="warn-strip" id="warnStrip">
+    <span class="eyebrow">Field notes</span>
+    <ul id="warnList"></ul>
+  </div>
+
+  <!-- ============================================================== TABS -->
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="overview"><span class="n">§1</span>Overview</button>
+    <button class="tab-btn" data-tab="taxonomy"><span class="n">§2</span>Taxonomy</button>
+    <button class="tab-btn" data-tab="biodiversity"><span class="n">§3</span>Biodiversity</button>
+    <button class="tab-btn" data-tab="sites"><span class="n">§4</span>Sites</button>
+    <button class="tab-btn" data-tab="community"><span class="n">§5</span>Community</button>
+    <button class="tab-btn" data-tab="seqqc"><span class="n">§6</span>Sequence QC</button>
+    <button class="tab-btn" data-tab="spatial"><span class="n">§7</span>Spatial</button>
+    <button class="tab-btn" data-tab="temporal"><span class="n">§8</span>Temporal</button>
+  </div>
+
+  <div class="folder">
+
+    <!-- ---------------------------------------------------------- OVERVIEW -->
+    <section class="section active" id="sec-overview">
+      <div class="section-head">
+        <h2>Dataset overview</h2>
+        <span class="sub" id="overviewSub">no dataset loaded</span>
+      </div>
+      <div id="overviewBody">
+        <div class="empty-state">
+          <div class="glyph">— · —</div>
+          <p>Nothing accessioned yet. Upload a CSV or run the demo dataset above to populate this ledger.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------------- TAXONOMY -->
+    <section class="section" id="sec-taxonomy">
+      <div class="section-head">
+        <h2>Taxonomic summary</h2>
+        <span class="sub" id="taxonomySub"></span>
+      </div>
+      <div id="taxonomyBody"><div class="empty-state"><p>No taxonomy computed yet.</p></div></div>
+    </section>
+
+    <!-- ------------------------------------------------------- BIODIVERSITY -->
+    <section class="section" id="sec-biodiversity">
+      <div class="section-head">
+        <h2>Biodiversity indices</h2>
+        <span class="sub" id="biodiversitySub"></span>
+      </div>
+      <div id="biodiversityBody"><div class="empty-state"><p>No diversity indices computed yet.</p></div></div>
+    </section>
+
+    <!-- -------------------------------------------------------------- SITES -->
+    <section class="section" id="sec-sites">
+      <div class="section-head">
+        <h2>Site comparison</h2>
+        <span class="sub" id="sitesSub"></span>
+      </div>
+      <div id="sitesBody"><div class="empty-state"><p>No site-level data yet.</p></div></div>
+    </section>
+
+    <!-- --------------------------------------------------------- COMMUNITY -->
+    <section class="section" id="sec-community">
+      <div class="section-head">
+        <h2>Community similarity</h2>
+        <span class="sub" id="communitySub"></span>
+      </div>
+      <div id="communityBody"><div class="empty-state"><p>No community comparison yet.</p></div></div>
+    </section>
+
+    <!-- --------------------------------------------------------- SEQUENCE QC -->
+    <section class="section" id="sec-seqqc">
+      <div class="section-head">
+        <h2>Sequence quality control</h2>
+        <span class="sub" id="seqqcSub"></span>
+      </div>
+      <div id="seqqcBody"><div class="empty-state"><p>No sequence data yet.</p></div></div>
+    </section>
+
+    <!-- ------------------------------------------------------------ SPATIAL -->
+    <section class="section" id="sec-spatial">
+      <div class="section-head">
+        <h2>Spatial spread</h2>
+        <span class="sub" id="spatialSub"></span>
+      </div>
+      <div id="spatialBody"><div class="empty-state"><p>No coordinate data yet.</p></div></div>
+    </section>
+
+    <!-- ----------------------------------------------------------- TEMPORAL -->
+    <section class="section" id="sec-temporal">
+      <div class="section-head">
+        <h2>Temporal spread</h2>
+        <span class="sub" id="temporalSub"></span>
+      </div>
+      <div id="temporalBody"><div class="empty-state"><p>No date data yet.</p></div></div>
+    </section>
+
+  </div>
+
+  <!-- ---------------------------------------------------------- MAPPING -->
+  <div class="mapping" id="mappingSection" style="display:none;">
+    <span class="eyebrow">Manual column mapping</span>
+    <p style="font-size:13px; color:var(--ink-soft); max-width:70ch; margin:8px 0 0;">
+      TerraTrace reads column headers to find taxon, sample, site and abundance fields. If detection looks wrong, or you'd like to point it at different columns, choose them below and re-run the analysis on the same file.
+    </p>
+    <div class="mapping-grid" id="mappingGrid"></div>
+    <div class="btn-row">
+      <button class="btn" id="remapBtn">Re-run with this mapping</button>
+      <button class="btn ghost" id="cancelMapBtn">Cancel</button>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:16px;">
+    <button class="mapping-toggle" id="mappingToggle" style="display:none;">Remap columns manually →</button>
+  </div>
+
+</div>
+
+<footer class="site-foot">
+  <span>TerraTrace — local eDNA analysis ledger</span>
+  <span>backend expected at <code style="font-family:var(--mono);">127.0.0.1:8000</code></span>
+</footer>
+
+<script>
+(function(){
+
+const API_BASE = 'http://127.0.0.1:8000';
+
+/* ---------------------------------------------------------------- state */
+
+const state = {
+  lastFile: null,
+  lastResult: null,
+  charts: {},          // chart.js instances keyed by canvas id, destroyed on re-render
+  activeMatrix: 'jaccard',
+};
+
+/* ------------------------------------------------------------- utilities */
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+function fmt(n, decimals){
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  if (typeof n !== 'number') return escapeHtml(n);
+  if (decimals === undefined) return n.toLocaleString();
+  return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function hashCode(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++){ h = (Math.imul(31, h) + str.charCodeAt(i)) | 0; }
+  return h >>> 0;
+}
+
+function barcodeHTML(name){
+  const colors = ['var(--ink)', 'var(--brackish)', 'var(--silt)', 'var(--brackish-deep)'];
+  let seed = hashCode(String(name));
+  let bars = '';
+  for (let i = 0; i < 11; i++){
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    const w = 1 + (seed % 4);
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    const isGap = (seed % 5) === 0;
+    const c = colors[seed % colors.length];
+    bars += `<span style="display:inline-block;width:${w}px;height:100%;background:${isGap ? 'transparent' : c};margin-right:1px;"></span>`;
+  }
+  return `<span class="barcode" title="${escapeHtml(name)}">${bars}</span>`;
+}
+
+function el(id){ return document.getElementById(id); }
+
+function destroyChart(key){
+  if (state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; }
+}
+
+function chartFont(){
+  return { family: "'JetBrains Mono', monospace", size: 11 };
+}
+
+const CHART_COLORS = {
+  brackish: '#2F5D62',
+  brackishDeep: '#1B3A3D',
+  silt: '#A97A2E',
+  rust: '#A23E2B',
+  ink: '#23271F',
+  line: '#C9BE9F',
+};
+
+/* --------------------------------------------------------- backend health */
+
+async function checkHealth(){
+  const pill = el('statusPill');
+  const text = el('statusText');
+  try{
+    const res = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    pill.className = 'status-pill ok';
+    text.textContent = 'backend connected · ' + (data.service || 'TerraTrace');
+  }catch(err){
+    pill.className = 'status-pill bad';
+    text.textContent = 'backend offline — start uvicorn on :8000';
+  }
+}
+
+/* ------------------------------------------------------------ tape strip */
+
+function buildTape(){
+  const bases = 'ACGTACGTNACGGTACGATCGTAACGTTAGCATCGGATCA';
+  let out = '';
+  for (const ch of bases.repeat(6)){
+    out += (ch === 'N') ? `<b>${ch}</b>` : ch;
+  }
+  el('tapeInner').innerHTML = out + '&nbsp;&nbsp;&nbsp;' + out;
+}
+
+/* ----------------------------------------------------------------- tabs */
+
+function setupTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      el('sec-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+function goTab(name){
+  const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if (btn) btn.click();
+}
+
+/* ------------------------------------------------------------- intake UI */
+
+function showIntakeError(msg){
+  const box = el('intakeError');
+  box.textContent = msg;
+  box.classList.add('show');
+}
+function clearIntakeError(){
+  el('intakeError').classList.remove('show');
+  el('intakeError').textContent = '';
+}
+
+function setLoading(on, text){
+  el('loadingRow').style.display = on ? 'flex' : 'none';
+  if (text) el('loadingText').textContent = text;
+}
+
+el('chooseBtn').addEventListener('click', () => el('fileInput').click());
+
+el('fileInput').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) handleFileChosen(f);
+});
+
+const dz = el('dropzone');
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, (e) => {
+  e.preventDefault(); dz.classList.add('drag');
+}));
+['dragleave','drop'].forEach(ev => dz.addEventListener(ev, (e) => {
+  e.preventDefault(); dz.classList.remove('drag');
+}));
+dz.addEventListener('drop', (e) => {
+  const f = e.dataTransfer.files[0];
+  if (f) handleFileChosen(f);
+});
+
+function handleFileChosen(file){
+  clearIntakeError();
+  if (!file.name.toLowerCase().endsWith('.csv')){
+    showIntakeError('Please choose a .csv file.');
+    return;
+  }
+  if (file.size === 0){
+    showIntakeError('That file is empty.');
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024){
+    showIntakeError('File is larger than the 25 MB upload limit.');
+    return;
+  }
+  el('fileNameLabel').textContent = file.name + '  (' + (file.size/1024).toFixed(1) + ' KB)';
+  state.lastFile = file;
+  uploadFile(file);
+}
+
+el('demoBtn').addEventListener('click', runDemo);
+
+async function runDemo(){
+  clearIntakeError();
+  state.lastFile = null;
+  el('fileNameLabel').textContent = '';
+  setLoading(true, 'Running the reference dataset…');
+  try{
+    const res = await fetch(API_BASE + '/api/demo');
+    const data = await res.json();
+    if (!res.ok || data.error){
+      showIntakeError(data.error || 'The demo dataset could not be analyzed.');
+      return;
+    }
+    applyResult(data);
+  }catch(err){
+    showIntakeError('Could not reach the backend at ' + API_BASE + '. Is uvicorn running?');
+  }finally{
+    setLoading(false);
+  }
+}
+
+async function uploadFile(file){
+  setLoading(true, 'Analyzing ' + file.name + '…');
+  try{
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(API_BASE + '/api/analyze', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok || data.error){
+      showIntakeError(data.error || 'Analysis failed.');
+      return;
+    }
+    applyResult(data);
+  }catch(err){
+    showIntakeError('Could not reach the backend at ' + API_BASE + '. Is uvicorn running?');
+  }finally{
+    setLoading(false);
+  }
+}
+
+/* ------------------------------------------------------------- mapping UI */
+
+el('mappingToggle').addEventListener('click', () => {
+  el('mappingSection').style.display = 'block';
+  el('mappingSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+el('cancelMapBtn').addEventListener('click', () => {
+  el('mappingSection').style.display = 'none';
+});
+
+function buildMappingUI(columns){
+  const fields = [
+    ['taxon_column', 'Taxon column', columns.taxon],
+    ['sample_column', 'Sample column', columns.sample],
+    ['site_column', 'Site column', columns.site],
+    ['abundance_column', 'Abundance column', columns.abundance],
+  ];
+  const all = columns.all_columns || [];
+  const grid = el('mappingGrid');
+  grid.innerHTML = fields.map(([id, label, current]) => `
+    <div class="field">
+      <label for="map_${id}">${label}</label>
+      <select id="map_${id}">
+        <option value="">— none —</option>
+        ${all.map(c => `<option value="${escapeHtml(c)}" ${c === current ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+
+  el('mappingToggle').style.display = 'inline-block';
+  if (!columns.confident){
+    el('mappingSection').style.display = 'block';
+  }
+}
+
+el('remapBtn').addEventListener('click', async () => {
+  if (!state.lastFile){
+    showIntakeError('Manual mapping needs the original file — the demo dataset can\'t be remapped. Upload a CSV to use this.');
+    return;
+  }
+  const params = new URLSearchParams();
+  ['taxon_column','sample_column','site_column','abundance_column'].forEach(id => {
+    const v = el('map_' + id).value;
+    if (v) params.set(id, v);
+  });
+  setLoading(true, 'Re-running analysis with your mapping…');
+  try{
+    const form = new FormData();
+    form.append('file', state.lastFile);
+    const res = await fetch(API_BASE + '/api/analyze-mapped?' + params.toString(), { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok || data.error){
+      showIntakeError(data.error || 'Remapped analysis failed.');
+      return;
+    }
+    applyResult(data);
+    el('mappingSection').style.display = 'none';
+  }catch(err){
+    showIntakeError('Could not reach the backend at ' + API_BASE + '.');
+  }finally{
+    setLoading(false);
+  }
+});
+
+/* -------------------------------------------------------------- warnings */
+
+function renderWarnings(result){
+  const list = el('warnList');
+  const strip = el('warnStrip');
+  const warnings = result.warnings || [];
+  if (warnings.length === 0){
+    strip.classList.remove('show');
+    list.innerHTML = '';
+    return;
+  }
+  strip.classList.add('show');
+  list.innerHTML = warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('');
+}
+
+/* -------------------------------------------------------------- overview */
+
+function renderOverview(result){
+  el('overviewSub').textContent = (result.is_demo ? 'reference dataset · ' : 'uploaded dataset · ') +
+    fmt(result.dataset.rows) + ' rows · ' + fmt(result.dataset.columns) + ' columns';
+
+  const q = result.quality;
+  const c = result.columns;
+
+  const detectedRows = [
+    ['Taxon', c.taxon], ['Sample', c.sample], ['Site', c.site],
+    ['Abundance', c.abundance], ['Sequence', c.sequence],
+    ['Latitude', c.latitude], ['Longitude', c.longitude], ['Date', c.date],
+  ];
+
+  const rankChips = Object.keys(c.ranks || {}).length
+    ? Object.entries(c.ranks).map(([rank, col]) => `<span class="rank-chip">${rank} → ${escapeHtml(col)}</span>`).join('')
+    : '<span class="muted">none detected</span>';
+
+  el('overviewBody').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Rows</div><div class="value">${fmt(q.rows)}</div></div>
+      <div class="stat"><div class="label">Columns</div><div class="value">${fmt(q.columns)}</div></div>
+      <div class="stat"><div class="label">Missing values</div><div class="value">${fmt(q.missing_values)}</div></div>
+      <div class="stat"><div class="label">Duplicate rows</div><div class="value">${fmt(q.duplicate_rows)}</div></div>
+      <div class="stat"><div class="label">Invalid abundance</div><div class="value">${fmt(q.invalid_abundance_values)}</div></div>
+      <div class="stat"><div class="label">Invalid coordinates</div><div class="value">${fmt(q.invalid_coordinates)}</div></div>
+      <div class="stat"><div class="label">Invalid sequences</div><div class="value">${fmt(q.invalid_sequences)}</div></div>
+      <div class="stat"><div class="label">Analysis mode</div><div class="value" style="font-size:16px;">${c.analysis_mode === 'abundance' ? 'Abundance' : 'Presence/absence'}</div></div>
+    </div>
+
+    <span class="eyebrow">Detected columns</span>
+    <div class="table-wrap" style="margin:10px 0 20px;">
+      <table class="ledger">
+        <thead><tr><th>Field</th><th>Mapped column</th></tr></thead>
+        <tbody>
+          ${detectedRows.map(([label, col]) => `
+            <tr><td>${label}</td><td class="${col ? '' : 'muted'}">${col ? escapeHtml(col) : 'not detected'}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <span class="eyebrow">Taxonomic rank columns</span>
+    <div style="margin:10px 0 4px;">${rankChips}</div>
+  `;
+
+  buildMappingUI(c);
+}
+
+/* -------------------------------------------------------------- taxonomy */
+
+function renderTaxonomy(result){
+  const t = result.taxonomy;
+  el('taxonomySub').textContent = t.available ? `${t.richness} taxa observed · counts by ${t.count_basis.replace('_',' ')}` : '';
+
+  if (!t.available){
+    el('taxonomyBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(t.reason || 'No taxon column identified.')}</div>`;
+    return;
+  }
+
+  const ranks = t.ranks_present || [];
+  el('taxonomyBody').innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
+      <div class="stat"><div class="label">Observed richness</div><div class="value">${fmt(t.richness)}</div></div>
+      <div class="stat"><div class="label">Count basis</div><div class="value" style="font-size:16px;">${t.count_basis === 'abundance' ? 'Abundance' : 'Presence'}</div></div>
+      <div class="stat"><div class="label">Rank columns present</div><div class="value" style="font-size:16px;">${ranks.length ? ranks.join(', ') : 'none'}</div></div>
+    </div>
+    <div class="table-wrap">
+      <table class="ledger">
+        <thead><tr>
+          <th>Taxon</th><th class="num">${t.count_basis === 'abundance' ? 'Reads' : 'Detections'}</th>
+          ${ranks.map(r => `<th>${r}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+          ${t.taxon_table.map(row => `
+            <tr>
+              <td>${barcodeHTML(row.taxon)}<span class="sci">${escapeHtml(row.taxon)}</span></td>
+              <td class="num">${fmt(row.count)}</td>
+              ${ranks.map(r => `<td class="muted">${escapeHtml(row[r] || 'Not provided')}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ----------------------------------------------------------- biodiversity */
+
+function renderBiodiversity(result){
+  const b = result.biodiversity;
+  el('biodiversitySub').textContent = b.available ? `${b.observed_richness} taxa · ${fmt(b.total_count)} total ${b.count_basis === 'abundance' ? 'reads' : 'detections'}` : '';
+
+  if (!b.available){
+    el('biodiversityBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(b.reason || 'No taxon counts available.')}</div>`;
+    return;
+  }
+
+  const chaoNote = b.chao1_estimated_richness !== null && b.chao1_estimated_richness !== undefined
+    ? ''
+    : `<div class="note">${escapeHtml(b.chao1_reason || '')}</div>`;
+
+  el('biodiversityBody').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Observed richness (S)</div><div class="value">${fmt(b.observed_richness)}</div></div>
+      <div class="stat"><div class="label">Shannon (H′)</div><div class="value">${fmt(b.shannon_diversity, 3)}</div></div>
+      <div class="stat"><div class="label">Simpson (1−D)</div><div class="value">${fmt(b.simpson_diversity, 3)}</div></div>
+      <div class="stat"><div class="label">Pielou evenness (J′)</div><div class="value">${fmt(b.pielou_evenness, 3)}</div></div>
+      <div class="stat"><div class="label">Margalef richness</div><div class="value">${fmt(b.margalef_richness, 3)}</div></div>
+      <div class="stat"><div class="label">Chao1 estimate</div><div class="value">${fmt(b.chao1_estimated_richness, 2)}</div>${chaoNote}</div>
+    </div>
+    <p style="font-size:12.5px; color:var(--ink-soft); max-width:70ch;">
+      Computed on ${escapeHtml(b.count_basis === 'abundance' ? 'summed read abundance' : 'presence counts')} per taxon across the whole dataset (${fmt(b.total_count)} total).
+      Pielou evenness and Margalef richness require more than one observed taxon to be defined.
+    </p>
+  `;
+}
+
+/* ------------------------------------------------------------------ sites */
+
+function renderSites(result){
+  const s = result.sites;
+  el('sitesSub').textContent = s.available ? `${s.sites.length} sites compared` : '';
+
+  if (!s.available){
+    el('sitesBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(s.reason || 'Site data not available.')}</div>`;
+    return;
+  }
+
+  destroyChart('sitesChart');
+  el('sitesBody').innerHTML = `
+    <div class="chart-box">
+      <div class="cap">Shannon &amp; Simpson diversity by site</div>
+      <div class="chart-canvas-wrap"><canvas id="sitesChartCanvas"></canvas></div>
+    </div>
+    <div class="table-wrap">
+      <table class="ledger">
+        <thead><tr>
+          <th>Site</th><th class="num">Samples</th><th class="num">Richness</th>
+          <th class="num">Shannon</th><th class="num">Simpson</th><th class="num">Total ${result.columns.analysis_mode === 'abundance' ? 'reads' : 'detections'}</th>
+        </tr></thead>
+        <tbody>
+          ${s.sites.map(row => `
+            <tr>
+              <td>${escapeHtml(row.site)}</td>
+              <td class="num">${fmt(row.n_samples)}</td>
+              <td class="num">${fmt(row.richness)}</td>
+              <td class="num">${fmt(row.shannon_diversity, 3)}</td>
+              <td class="num">${fmt(row.simpson_diversity, 3)}</td>
+              <td class="num">${fmt(row.total_count)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const ctx = el('sitesChartCanvas').getContext('2d');
+  state.charts.sitesChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: s.sites.map(r => r.site),
+      datasets: [
+        { label: 'Shannon (H′)', data: s.sites.map(r => r.shannon_diversity), backgroundColor: CHART_COLORS.brackish },
+        { label: 'Simpson (1−D)', data: s.sites.map(r => r.simpson_diversity), backgroundColor: CHART_COLORS.silt },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: chartFont(), color: CHART_COLORS.ink } } },
+      scales: {
+        x: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { display: false } },
+        y: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line } },
+      }
+    }
+  });
+}
+
+/* -------------------------------------------------------------- community */
+
+function renderCommunity(result){
+  const c = result.community;
+  el('communitySub').textContent = c.available ? `${c.sites.length} × ${c.sites.length} pairwise comparison` : '';
+
+  if (!c.available){
+    el('communityBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(c.reason || 'Community comparison not available.')}</div>`;
+    return;
+  }
+
+  const available = [
+    ['jaccard', 'Jaccard distance', c.jaccard],
+    ['sorensen', 'Sørensen–Dice distance', c.sorensen],
+    ['bray_curtis', 'Bray–Curtis dissimilarity', c.bray_curtis],
+  ].filter(([, , m]) => m !== null && m !== undefined);
+
+  if (!available.some(([key]) => key === state.activeMatrix)) state.activeMatrix = available[0][0];
+
+  el('communityBody').innerHTML = `
+    <p style="font-size:12.5px; color:var(--ink-soft); max-width:70ch; margin-top:0;">
+      Pairwise dissimilarity between sites, 0 = identical taxon composition, 1 = fully distinct. Jaccard and Sørensen use presence/absence; Bray–Curtis additionally weights by abundance.
+    </p>
+    <div class="matrix-tabs" id="matrixTabs">
+      ${available.map(([key, label]) => `<button class="mtab ${key === state.activeMatrix ? 'active' : ''}" data-m="${key}">${label}</button>`).join('')}
+    </div>
+    <div class="table-wrap" id="matrixTableWrap"></div>
+    ${c.bray_curtis === null ? `<p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;">${escapeHtml(c.bray_curtis_reason || '')}</p>` : ''}
+  `;
+
+  document.querySelectorAll('#matrixTabs .mtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeMatrix = btn.dataset.m;
+      document.querySelectorAll('#matrixTabs .mtab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      drawMatrix(c);
+    });
+  });
+
+  drawMatrix(c);
+}
+
+function drawMatrix(c){
+  const map = { jaccard: c.jaccard, sorensen: c.sorensen, bray_curtis: c.bray_curtis };
+  const matrix = map[state.activeMatrix];
+  const sites = c.sites;
+
+  const cellStyle = (v, isDiag) => {
+    if (isDiag) return '';
+    const intensity = Math.max(0, Math.min(1, v));
+    const bg = `rgba(47,93,98,${(intensity * 0.55).toFixed(2)})`;
+    return `background:${bg};`;
+  };
+
+  el('matrixTableWrap').innerHTML = `
+    <table class="matrix">
+      <thead><tr><th></th>${sites.map(s => `<th>${escapeHtml(s)}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${matrix.map((row, i) => `
+          <tr>
+            <th class="rowhead">${escapeHtml(sites[i])}</th>
+            ${row.map((v, j) => `<td class="${i === j ? 'diag' : ''}" style="${cellStyle(v, i === j)}">${fmt(v, 2)}</td>`).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+/* -------------------------------------------------------------- sequence QC */
+
+function bin(values, count){
+  if (!values.length) return { labels: [], counts: [] };
+  const min = Math.min(...values), max = Math.max(...values);
+  if (min === max) return { labels: [String(min)], counts: [values.length] };
+  const width = (max - min) / count;
+  const counts = new Array(count).fill(0);
+  values.forEach(v => {
+    let idx = Math.floor((v - min) / width);
+    if (idx >= count) idx = count - 1;
+    if (idx < 0) idx = 0;
+    counts[idx]++;
+  });
+  const labels = counts.map((_, i) => (min + i * width).toFixed(0));
+  return { labels, counts };
+}
+
+function renderSeqQC(result){
+  const q = result.sequence_qc;
+  el('seqqcSub').textContent = q.available ? `${fmt(q.valid_sequences)} valid sequences` : '';
+
+  if (!q.available){
+    el('seqqcBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(q.reason || 'No sequence data available.')}</div>`;
+    return;
+  }
+
+  el('seqqcBody').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Valid sequences</div><div class="value">${fmt(q.valid_sequences)}</div></div>
+      <div class="stat"><div class="label">Invalid sequences</div><div class="value">${fmt(q.invalid_sequences)}</div></div>
+      <div class="stat"><div class="label">Duplicate sequences</div><div class="value">${fmt(q.duplicate_sequences)}</div></div>
+      <div class="stat"><div class="label">Ambiguous bases (N)</div><div class="value">${fmt(q.ambiguous_base_count)}</div></div>
+      <div class="stat"><div class="label">Length range</div><div class="value" style="font-size:16px;">${q.length_stats ? fmt(q.length_stats.min)+'–'+fmt(q.length_stats.max)+' bp' : '—'}</div></div>
+      <div class="stat"><div class="label">Mean GC%</div><div class="value">${q.gc_stats ? fmt(q.gc_stats.mean, 1) : '—'}</div></div>
+    </div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="cap">Sequence length distribution (bp)</div>
+        <div class="chart-canvas-wrap"><canvas id="lenChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="cap">GC content distribution (%)</div>
+        <div class="chart-canvas-wrap"><canvas id="gcChart"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  destroyChart('lenChart'); destroyChart('gcChart');
+
+  const lenBinned = bin(q.length_distribution, 12);
+  state.charts.lenChart = new Chart(el('lenChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: lenBinned.labels, datasets: [{ label: 'sequences', data: lenBinned.counts, backgroundColor: CHART_COLORS.brackish }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { display: false } },
+        y: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line } },
+      }
+    }
+  });
+
+  const gcBinned = bin(q.gc_distribution, 12);
+  state.charts.gcChart = new Chart(el('gcChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: gcBinned.labels, datasets: [{ label: 'sequences', data: gcBinned.counts, backgroundColor: CHART_COLORS.silt }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { display: false } },
+        y: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line } },
+      }
+    }
+  });
+}
+
+/* ------------------------------------------------------------------ spatial */
+
+function renderSpatial(result){
+  const sp = result.spatial;
+  el('spatialSub').textContent = sp.available ? `${fmt(sp.n_valid)} valid coordinate pairs` : '';
+
+  if (!sp.available){
+    el('spatialBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(sp.reason || 'No coordinate data available.')}</div>`;
+    return;
+  }
+
+  el('spatialBody').innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">
+      <div class="stat"><div class="label">Valid points</div><div class="value">${fmt(sp.n_valid)}</div></div>
+      <div class="stat"><div class="label">Invalid / missing</div><div class="value">${fmt(sp.n_invalid)}</div></div>
+    </div>
+    <div class="chart-box">
+      <div class="cap">Sample coordinates (longitude × latitude)</div>
+      <div class="chart-canvas-wrap" style="height:320px;"><canvas id="spatialChart"></canvas></div>
+    </div>
+  `;
+
+  destroyChart('spatialChart');
+
+  const bySite = {};
+  sp.points.forEach(p => {
+    const key = p.site || 'unassigned';
+    if (!bySite[key]) bySite[key] = [];
+    bySite[key].push({ x: p.longitude, y: p.latitude, taxon: p.taxon });
+  });
+  const siteNames = Object.keys(bySite);
+  const palette = [CHART_COLORS.brackish, CHART_COLORS.silt, CHART_COLORS.rust, CHART_COLORS.brackishDeep, '#6E8C50', '#7A5C8E'];
+
+  state.charts.spatialChart = new Chart(el('spatialChart').getContext('2d'), {
+    type: 'scatter',
+    data: {
+      datasets: siteNames.map((name, i) => ({
+        label: name,
+        data: bySite[name],
+        backgroundColor: palette[i % palette.length],
+        pointRadius: 4,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: chartFont(), color: CHART_COLORS.ink } },
+        tooltip: {
+          callbacks: {
+            label: (item) => {
+              const p = item.raw;
+              const parts = [`lon ${p.x.toFixed(4)}, lat ${p.y.toFixed(4)}`];
+              if (p.taxon) parts.push(p.taxon);
+              return parts.join(' · ');
+            }
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'longitude', font: chartFont(), color: CHART_COLORS.ink }, ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line } },
+        y: { title: { display: true, text: 'latitude', font: chartFont(), color: CHART_COLORS.ink }, ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line } },
+      }
+    }
+  });
+}
+
+/* ----------------------------------------------------------------- temporal */
+
+function renderTemporal(result){
+  const t = result.temporal;
+  el('temporalSub').textContent = t.available ? `${fmt(t.n_valid_dates)} dated samples` : '';
+
+  if (!t.available){
+    el('temporalBody').innerHTML = `<div class="unavailable"><b>Unavailable.</b> ${escapeHtml(t.reason || 'No date data available.')}</div>`;
+    return;
+  }
+
+  el('temporalBody').innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">
+      <div class="stat"><div class="label">Valid dates</div><div class="value">${fmt(t.n_valid_dates)}</div></div>
+      <div class="stat"><div class="label">Invalid dates</div><div class="value">${fmt(t.n_invalid_dates)}</div></div>
+    </div>
+    <div class="chart-box">
+      <div class="cap">Samples &amp; unique taxa over time</div>
+      <div class="chart-canvas-wrap"><canvas id="temporalChart"></canvas></div>
+    </div>
+  `;
+
+  destroyChart('temporalChart');
+
+  const labels = t.samples_over_time.map(r => r.date);
+  const sampleCounts = t.samples_over_time.map(r => r.sample_count);
+  const taxaMap = {};
+  (t.taxa_over_time || []).forEach(r => { taxaMap[r.date] = r.unique_taxa; });
+
+  const datasets = [
+    { label: 'samples', data: sampleCounts, borderColor: CHART_COLORS.brackish, backgroundColor: CHART_COLORS.brackish, tension: 0.15 },
+  ];
+  if (t.taxa_over_time){
+    datasets.push({ label: 'unique taxa', data: labels.map(d => taxaMap[d] ?? null), borderColor: CHART_COLORS.silt, backgroundColor: CHART_COLORS.silt, tension: 0.15 });
+  }
+
+  state.charts.temporalChart = new Chart(el('temporalChart').getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: chartFont(), color: CHART_COLORS.ink } } },
+      scales: {
+        x: { ticks: { font: chartFont(), color: CHART_COLORS.ink, maxRotation: 45, minRotation: 0 }, grid: { display: false } },
+        y: { ticks: { font: chartFont(), color: CHART_COLORS.ink }, grid: { color: CHART_COLORS.line }, beginAtZero: true },
+      }
+    }
+  });
+}
+
+/* --------------------------------------------------------------- dispatch */
+
+function applyResult(result){
+  state.lastResult = result;
+  renderWarnings(result);
+  renderOverview(result);
+  renderTaxonomy(result);
+  renderBiodiversity(result);
+  renderSites(result);
+  renderCommunity(result);
+  renderSeqQC(result);
+  renderSpatial(result);
+  renderTemporal(result);
+  goTab('overview');
+}
+
+/* ------------------------------------------------------------------- init */
+
+setupTabs();
+buildTape();
+checkHealth();
+setInterval(checkHealth, 20000);
+
+})();
+</script>
+</body>
+</html>
